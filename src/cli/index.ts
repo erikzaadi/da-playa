@@ -147,4 +147,6 @@ program
     }
   })
 
-program.parse(process.argv)
+export const cli = (args: string[]): void => {
+  program.parse(args)
+}

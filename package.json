@@ -1,15 +1,16 @@
 {
   "name": "da-playa",
-  "version": "0.0.1",
+  "version": "0.0.0",
   "description": "Deploy locks management (CLI and Slackbot)",
   "main": "index.js",
   "scripts": {
     "build": "tsc -b",
+    "clean": "rm -rf ./dist",
     "test": "jest",
     "lint": "eslint .",
-    "cli": "node ./dist/src/cli/index.js"
+    "cli": "node ./dist/src/cli/entrypoint.js"
   },
-  "bin": "dist/src/cli/index.js",
+  "bin": "dist/src/cli/entrypoint.js",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/erikzaadi/daplaya.git"

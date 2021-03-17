@@ -1,0 +1,14 @@
+#!/bin/bash
+SCRIPT_BASE="$( cd -P "$( dirname "$0" )" && pwd )"
+GIT_HASH=${GITHUB_SHA}
+GIT_TAG=${GITHUB_REF/refs\/tags\//}
+TARGET_FILE=${SCRIPT_BASE}/dist/src/version/index.js
+SED_COMMAND="sed -i"
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  SED_COMMAND="${SED_COMMAND} ''"
+fi
+
+${SED_COMMAND} "s/0.0.0/${GIT_TAG}/g" ${TARGET_FILE}
+${SED_COMMAND} "s/DEV/${GIT_HASH}/g" ${TARGET_FILE}
+
+npm --no-git-tag-version version ${GIT_TAG}
