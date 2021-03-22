@@ -43,6 +43,8 @@ DAPLAYA_SLACK_APP_ID
 
 ## Slack app endpoint
 
+**NOTE**: Still TBD
+
 ```
 /daplaya lock <ENV> [META]
 /daplaya uberlock <ENV> [META]
