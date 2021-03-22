@@ -9,6 +9,7 @@ const prettify = {
   user: chalk.green,
   env: chalk.blue,
   misc: chalk.gray,
+  error: chalk.red,
 }
 
 const UBERLOCK_UNIVERSAL_SIGN = '(ノ≥∇≤)ノ'
@@ -20,8 +21,6 @@ const program = new Command()
 program.version(`${Tag}-${Hash}`)
 
 const {
-  DAPLAYA_AWS_SECRET_KEY: envDynamoDBSecretKey,
-  DAPLAYA_AWS_ACCESS_KEY_ID: envDynamoDBAccessKeyId,
   DAPLAYA_AWS_REGION: envDynamoDBRegion,
 } = process.env
 
@@ -30,19 +29,9 @@ program
   .description('Locks an environment for a user')
   .requiredOption('--user <user>', 'User to lock for')
   .requiredOption('--env <env>', 'Environment to lock')
-  .requiredOption(
-    '--dynamoDBSecretKey <dynamoDBSecretKey>',
-    'Dynamo DB Secret Key (Taken from DAPLAYA_AWS_SECRET_KEY by default)',
-    envDynamoDBSecretKey,
-  )
-  .requiredOption(
-    '--dynamoDBAccessKeyId <dynamoDBAccessKeyId>',
-    'Dynamo DB Access Key ID (Taken from DAPLAYA_AWS_ACCESS_KEY_ID by default)',
-    envDynamoDBAccessKeyId,
-  )
   .option(
     '--dynamoDBRegion <dynamoDBRegion>',
-    'Dynamo DB Region (Optional, Taken from DAPLAYA_AWS_REGION if set)',
+    'DynamoDB Region (Optional, Taken from DAPLAYA_AWS_REGION if set)',
     envDynamoDBRegion,
   )
   .option('--uberlock', 'Lock current env until explicitly released')
@@ -54,7 +43,11 @@ program
       if ('currentLock' in lockResult) {
         const { currentLock } = lockResult as LockRejected
         if (currentLock.uberlock) {
-          log(`${prettify.env(env)} is uberlocked ${prettify.misc(UBERLOCK_UNIVERSAL_SIGN)} by ${prettify.user(currentLock.user)}`)
+          log(
+            `${prettify.env(env)} is uberlocked ${prettify.misc(
+              UBERLOCK_UNIVERSAL_SIGN,
+            )} by ${prettify.user(currentLock.user)}`,
+          )
           process.exit(1)
         }
         log(
@@ -77,19 +70,9 @@ program
   .description('Releases an environment for a user')
   .requiredOption('--user <user>', 'User to release')
   .requiredOption('--env <env>', 'Environment to release')
-  .requiredOption(
-    '--dynamoDBSecretKey <dynamoDBSecretKey>',
-    'Dynamo DB Secret Key (Taken from DAPLAYA_AWS_SECRET_KEY by default)',
-    envDynamoDBSecretKey,
-  )
-  .requiredOption(
-    '--dynamoDBAccessKeyId <dynamoDBAccessKeyId>',
-    'Dynamo DB Access Key ID (Taken from DAPLAYA_AWS_ACCESS_KEY_ID by default)',
-    envDynamoDBAccessKeyId,
-  )
   .option(
     '--dynamoDBRegion <dynamoDBRegion>',
-    'Dynamo DB Region (Optional, Taken from DAPLAYA_AWS_REGION if set)',
+    'DynamoDB Region (Optional, Taken from DAPLAYA_AWS_REGION if set)',
     envDynamoDBRegion,
   )
   .action(async ({ user, env, ...rest }) => {
@@ -111,19 +94,9 @@ program
   .command('locks')
   .description('List current locks')
   .requiredOption('--env <env>', 'Environment to release')
-  .requiredOption(
-    '--dynamoDBSecretKey <dynamoDBSecretKey>',
-    'Dynamo DB Secret Key (Taken from DAPLAYA_AWS_SECRET_KEY by default)',
-    envDynamoDBSecretKey,
-  )
-  .requiredOption(
-    '--dynamoDBAccessKeyId <dynamoDBAccessKeyId>',
-    'Dynamo DB Access Key ID (Taken from DAPLAYA_AWS_ACCESS_KEY_ID by default)',
-    envDynamoDBAccessKeyId,
-  )
   .option(
     '--dynamoDBRegion <dynamoDBRegion>',
-    'Dynamo DB Region (Optional, Taken from DAPLAYA_AWS_REGION if set)',
+    'DynamoDB Region (Optional, Taken from DAPLAYA_AWS_REGION if set)',
     envDynamoDBRegion,
   )
   .action(async ({ env, ...rest }) => {
@@ -145,6 +118,25 @@ program
         )
       })
     }
+  })
+
+program
+  .command('init')
+  .description('Creates DynamoDB Table')
+  .option(
+    '--dynamoDBRegion <dynamoDBRegion>',
+    'DynamoDB Region (Optional, Taken from DAPLAYA_AWS_REGION if set)',
+    envDynamoDBRegion,
+  )
+  .action(async options => {
+    const locker = await Locker(options)
+    try {
+      await locker.init()
+    } catch (err) {
+      log(`${prettify.error('Error:')} Unable to create DynamoDb table:\n${prettify.error(err)}`)
+      process.exit(1)
+    }
+    log(prettify.misc('DynamoDB Table up and working!'))
   })
 
 export const cli = (args: string[]): void => {

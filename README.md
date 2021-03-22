@@ -2,7 +2,9 @@
 
 ![](./yo.jpg)
 
-## Tables
+### Da-Playa stores the locks in DynamoDB
+
+#### DB Schema:
 
 `DaPlayaLocks`
 
@@ -14,26 +16,32 @@ id         |       user        |   env        | createdAt | updatedAt | active |
 <UUID>     |  <COMMITER_EMAIL> | WHATEVZ      | 123123123 | 123123123 | false  | true     | CLI
 ```
 
-## Env Vars
+## CLI
+
+Loads AWS credentials from environment variables (either `AWS_PROFILE` or the explicit `AWS_SECRET_KEY` and `AWS_ACCES_KEY_ID`).
 
 ```sh
-DAPLAYA_AWS_SECRET_KEY
-DAPLAYA_AWS_ACCESS_KEY_ID
+init                                                        # creates table
+locks --env <ENV>                                           # list locks
+release --env <ENV> --user <USER>                           # release locked env for user at env
+lock --env <ENV> --user <USER> [--meta <META>] [--uberlock] # locks an env for the user
+```
+
+**Note:** 
+
+`lock` keeps writing attempts for locking in case it's waiting (every 5 seconds).
+
+E.g. : `Still locked at env <ENV> by <USER>`
+
+## Additional Env Vars
+
+```sh
+DAPLAYA_AWS_REGION # Optionally explicitly set region to save DynamoDB table
 DAPLAYA_SLACK_APP_ID
 ```
 
-## CLI
-```sh
-lock --env <ENV> --user <USER> [--meta <META>] [--uberlock]
-# keeps in writing attempts for locking in case it's waiting
-# Still locked at env <ENV> by <USER>
 
-release --env <ENV> --user <USER>
-
-locks --env <ENV>
-```
-
-## Slack
+## Slack app endpoint
 
 ```
 /daplaya lock <ENV> [META]
@@ -42,6 +50,7 @@ locks --env <ENV>
 /daplaya leases <ENV>
 ```
 
+---
 
 ```
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::....................................................

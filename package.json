@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc -b",
+    "prepare": "npm run build",
     "clean": "rm -rf ./dist",
     "test": "jest",
     "lint": "eslint .",

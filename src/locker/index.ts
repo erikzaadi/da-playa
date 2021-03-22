@@ -33,54 +33,47 @@ export type ILock = {
   lock: (args: LockInputArgs) => Promise<Lock | LockRejected>
   release: (args: LockInputArgs) => Promise<Lock | LockNotActiveByUser>
   locks: (env: string) => Promise<Lock[]>
+  init: () => Promise<void>
 }
 
 export type LockOptionArgs = {
-  dynamoDBSecretKey: string
-  dynamoDBAccessKeyId: string
   dynamoDBRegion?: string
   dynamoDbUri?: string
 }
 
-export const Locker = async ({
-  dynamoDBSecretKey,
-  dynamoDBAccessKeyId,
-  dynamoDBRegion,
-  dynamoDbUri,
-}: LockOptionArgs): Promise<ILock> => {
-  dynamo.AWS.config.update({
-    accessKeyId: dynamoDBAccessKeyId,
-    secretAccessKey: dynamoDBSecretKey,
-    region: dynamoDBRegion ?? 'us-east-1',
-    ...(dynamoDbUri
-      ? {
-        endpoint: dynamoDbUri,
-      }
-      : {}),
-  })
-  const LockDb = dynamo.define('Lock', {
-    hashKey: 'id',
-    rangeKey: 'env',
-    timestamps: false,
-    schema: {
-      user: Joi.string().required(),
-      id: dynamo.types.uuid(),
-      env: Joi.string().required(),
-      active: Joi.boolean(),
-      started: Joi.number().required(),
-      ended: Joi.number(),
-      uberlock: Joi.boolean(),
-      meta: Joi.string(),
-    },
-    tableName: 'DaPlayaLocks',
-  })
-  try {
-    await dynamo.createTables()
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error('failed to create da playa tables', e)
-    throw e
+const dynamoDbModel: dynamo.DefineConfig = {
+  hashKey: 'id',
+  rangeKey: 'env',
+  timestamps: false,
+  schema: {
+    user: Joi.string().required(),
+    id: dynamo.types.uuid(),
+    env: Joi.string().required(),
+    active: Joi.boolean(),
+    started: Joi.number().required(),
+    ended: Joi.number(),
+    uberlock: Joi.boolean(),
+    meta: Joi.string(),
+  },
+  tableName: 'DaPlayaLocks',
+}
+
+export const Locker = async ({ dynamoDBRegion, dynamoDbUri }: LockOptionArgs): Promise<ILock> => {
+  if (dynamoDBRegion || dynamoDbUri) {
+    dynamo.AWS.config.update({
+      ...(dynamoDBRegion
+        ? {
+          region: dynamoDBRegion,
+        }
+        : {}),
+      ...(dynamoDbUri
+        ? {
+          endpoint: dynamoDbUri,
+        }
+        : {}),
+    })
   }
+  const LockDb = dynamo.define('Lock', dynamoDbModel)
 
   const getActiveLocks = (env: string, user?: string): Promise<Lock[]> => {
     const ttl = new Date().getTime() - TTL
@@ -182,5 +175,14 @@ export const Locker = async ({
     },
     release: async ({ env, user }) => updatePromiseByUser(env, user),
     locks: async (env: string, user?: string) => getActiveLocks(env, user),
+    init: async () => {
+      try {
+        await dynamo.createTables()
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error('failed to create da playa tables', e)
+        throw e
+      }
+    },
   }
 }
