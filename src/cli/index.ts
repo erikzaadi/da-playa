@@ -114,7 +114,7 @@ program
         log(
           `User: ${prettify.user(lock.user)}${
             lock.uberlock ? ` uberlock ${prettify.misc(UBERLOCK_UNIVERSAL_SIGN)}` : ''
-          }`,
+          }${lock.meta ? ` ${prettify.misc(lock.meta)}` : ''}`,
         )
       })
     }
