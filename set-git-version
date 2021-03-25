@@ -11,7 +11,7 @@ fi
 ${SED_COMMAND} "s/0.0.0/${GIT_TAG}/g" ${TARGET_FILE}
 ${SED_COMMAND} "s/DEV/${GIT_HASH}/g" ${TARGET_FILE}
 if [[ "${GITHUB_REPOSITORY}" != "erikzaadi/da-playa" ]]; then
-  ${SET_COMMAND} "s/\"name\": \"da-playa\"/\"name\": \"\@${GITHUB_REPOSITORY//\//\\/}\"/g" ${SCRIPT_BASE}/package.json
+  ${SET_COMMAND} "s/\"name\": \"da-playa\"/\"name\": \"\@${GITHUB_REPOSITORY//\//\\/}\"/g" ./package.json
 fi
 
 npm --no-git-tag-version version ${GIT_TAG}
