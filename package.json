@@ -5,7 +5,6 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc -b",
-    "postinstall": "tsc -b",
     "clean": "rm -rf ./dist",
     "test": "jest",
     "lint": "eslint .",
