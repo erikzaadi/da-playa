@@ -18,7 +18,7 @@ jobs:
       - run: npm test
 
   publish-npm:
-    if: github.repository_owner == 'erikzaadi' or github.repository_owner == 'salto-io'
+    if: github.repository_owner == 'erikzaadi' || github.repository_owner == 'salto-io'
     needs: build
     runs-on: ubuntu-latest
     steps:
