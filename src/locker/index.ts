@@ -168,9 +168,7 @@ export const Locker = async ({ dynamoDBRegion, dynamoDbUri }: LockOptionArgs): P
       const activeLocks = await getActiveLocks(env)
       const currentUserLock = activeLocks.find(x => x.user === user)
       if (currentUserLock) {
-        return {
-          currentLock: currentUserLock,
-        }
+        return currentUserLock
       }
       if (!activeLocks.length) {
         return createLock({ user, env, meta, uberlock })
