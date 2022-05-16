@@ -23,7 +23,7 @@ Loads AWS credentials from environment variables (either `AWS_PROFILE` or the ex
 ```sh
 init                                                        # creates table
 locks --env <ENV>                                           # list locks
-release --env <ENV> --user <USER>                           # release locked env for user at env
+release --env <ENV> --user <USER> [--uberlock]              # release locked env for user at env
 lock --env <ENV> --user <USER> [--meta <META>] [--uberlock] # locks an env for the user
 ```
 

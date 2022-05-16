@@ -31,7 +31,7 @@ export type LockInputArgs = {
 
 export type ILock = {
   lock: (args: LockInputArgs) => Promise<Lock | LockRejected>
-  release: (args: LockInputArgs) => Promise<Lock | LockNotActiveByUser>
+  release: (args: LockInputArgs) => Promise<Lock | LockNotActiveByUser | LockRejected>
   locks: (env: string) => Promise<Lock[]>
   init: () => Promise<void>
 }
@@ -121,11 +121,17 @@ export const Locker = async ({ dynamoDBRegion, dynamoDbUri }: LockOptionArgs): P
   const updatePromiseByUser = async (
     env: string,
     user: string,
-  ): Promise<Lock | LockNotActiveByUser> => {
+    uberlock = false,
+  ): Promise<Lock | LockNotActiveByUser | LockRejected> => {
     const currentLock = await getActiveLocks(env, user)
     if (!currentLock.length) {
       return {
         notLockedBy: user.toLowerCase(),
+      }
+    }
+    if (currentLock[0].uberlock && !uberlock) {
+      return {
+        currentLock: currentLock[0],
       }
     }
     return new Promise((resolve, reject) => {
@@ -177,7 +183,7 @@ export const Locker = async ({ dynamoDBRegion, dynamoDbUri }: LockOptionArgs): P
         currentLock: activeLocks[0] as Lock,
       }
     },
-    release: async ({ env, user }) => updatePromiseByUser(env, user),
+    release: async ({ env, user, uberlock }) => updatePromiseByUser(env, user, uberlock),
     locks: async (env: string, user?: string) => getActiveLocks(env, user),
     init: async () => {
       try {

@@ -70,16 +70,19 @@ program
   .description('Releases an environment for a user')
   .requiredOption('--user <user>', 'User to release')
   .requiredOption('--env <env>', 'Environment to release')
+  .option('--uberlock', 'Release even if UBERLOCKED')
   .option(
     '--dynamoDBRegion <dynamoDBRegion>',
     'DynamoDB Region (Optional, Taken from DAPLAYA_AWS_REGION if set)',
     envDynamoDBRegion,
   )
-  .action(async ({ user, env, ...rest }) => {
+  .action(async ({ user, env, uberlock, ...rest }) => {
     const locker = await Locker(rest)
-    const releaseResult = await locker.release({ user, env })
+    const releaseResult = await locker.release({ user, env, uberlock })
     if ('notLockedBy' in releaseResult) {
       log(`${prettify.env(env)} was not locked...`)
+    } else if ('currentLock' in releaseResult) {
+      log(`${prettify.env(env)} is uberlocked ${prettify.misc(UBERLOCK_UNIVERSAL_SIGN)} by user ${prettify.user(user)}...`)
     } else {
       log(
         `Released ${prettify.env(env)} for user ${prettify.user(user)}${
