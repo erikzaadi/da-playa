@@ -41,7 +41,7 @@ export type LockOptionArgs = {
   dynamoDbUri?: string
 }
 
-const dynamoDbModel: dynamo.DefineConfig = {
+const locksDynamoDbModel: dynamo.DefineConfig = {
   hashKey: 'id',
   rangeKey: 'env',
   timestamps: false,
@@ -73,7 +73,7 @@ export const Locker = async ({ dynamoDBRegion, dynamoDbUri }: LockOptionArgs): P
         : {}),
     })
   }
-  const LockDb = dynamo.define('Lock', dynamoDbModel)
+  const LockDb = dynamo.define('Lock', locksDynamoDbModel)
 
   const getActiveLocks = (env: string, user?: string): Promise<Lock[]> => {
     const ttl = new Date().getTime() - TTL
