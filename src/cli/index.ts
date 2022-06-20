@@ -96,7 +96,7 @@ const getJobs = async ({
   const listOfJobs = await runningJobs[skipped ? 'getSkippedJobs' : 'getRunningJobs']({ ttl, jobname })
 
   if (json) {
-    log(listOfJobs)
+    log(JSON.stringify(listOfJobs))
     return
   }
 
