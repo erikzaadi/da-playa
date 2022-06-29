@@ -1,5 +1,6 @@
 import dynamo from 'dynamodb'
 import Joi from 'joi'
+import { Data } from '../data'
 
 const RELEVANT_JOBS_TIMESPAN = 30 * 60 * 1000
 
@@ -20,7 +21,7 @@ export type StartJobArgs = {
 }
 
 export type EndJobArgs = StartJobArgs & {
-  skipped: boolean
+  skipped?: boolean
 }
 
 export type GetRunningJobsArgs = {
@@ -33,7 +34,6 @@ export type IRunningJobs = {
   endJob: (args: EndJobArgs) => Promise<RunningJob | null>
   getRunningJobs: (args: GetRunningJobsArgs) => Promise<Array<RunningJob>>
   getSkippedJobs: (args: GetRunningJobsArgs) => Promise<Array<RunningJob>>
-  init: () => Promise<void>
 }
 
 export type RunningJobsOptionArgs = {
@@ -60,21 +60,12 @@ const runningJobsDynamoDbModel: dynamo.DefineConfig = {
 export const RunningJobs = async ({
   dynamoDBRegion, dynamoDbUri,
 }: RunningJobsOptionArgs): Promise<IRunningJobs> => {
-  if (dynamoDBRegion || dynamoDbUri) {
-    dynamo.AWS.config.update({
-      ...(dynamoDBRegion
-        ? {
-          region: dynamoDBRegion,
-        }
-        : {}),
-      ...(dynamoDbUri
-        ? {
-          endpoint: dynamoDbUri,
-        }
-        : {}),
-    })
-  }
-  const RunningJobsDb = dynamo.define('RunningJobs', runningJobsDynamoDbModel)
+  const RunningJobsDb = Data<RunningJob>({
+    model: runningJobsDynamoDbModel,
+    modelName: 'RunningJobs',
+    dynamoDBRegion,
+    dynamoDbUri,
+  })
   const getJobs = (
     jobname: string,
     ttl = RELEVANT_JOBS_TIMESPAN,
@@ -92,39 +83,30 @@ export const RunningJobs = async ({
         ':skipped': true,
       } : {}),
     }
-    const filterAttributeNames = { '#started': 'started',
+    const filterAttributeNames = {
+      '#started': 'started',
       '#jobname': 'jobname',
       ...(skipped ? {
         '#skipped': 'skipped',
-      } : {}) }
+      } : {}),
+    }
 
-    return new Promise<RunningJob[]>((resolve, reject) => {
-      RunningJobsDb.scan()
-        .filterExpression(filterExpression)
-        .expressionAttributeValues(filterAttributeValues)
-        .expressionAttributeNames(filterAttributeNames)
-        .exec((err, result) => {
-          if (err) {
-            reject(err)
-          } else {
-            resolve(result.Items.map((x: any) => x.attrs) as RunningJob[])
-          }
-        })
+    return RunningJobsDb.get({
+      filterExpression,
+      filterAttributeValues,
+      filterAttributeNames,
     })
   }
 
   return {
-    startJob: async ({ user, version, jobname }) => {
-      const newRunning = new RunningJobsDb({
+    startJob: async ({ user, version, jobname }) =>
+      RunningJobsDb.create({
         user: user.toLowerCase(),
         started: new Date().getTime(),
         version,
         jobname,
         skipped: false,
-      })
-      const created = await newRunning.save()
-      return created.attrs as RunningJob
-    },
+      }),
     getRunningJobs: ({ ttl, jobname }) => getJobs(jobname, ttl),
     getSkippedJobs: ({ ttl, jobname }) => getJobs(jobname, ttl, true),
     endJob: async ({ jobname, version, user, skipped = false }) => {
@@ -136,32 +118,14 @@ export const RunningJobs = async ({
         return null
       }
 
-      return new Promise((resolve, reject) => {
-        RunningJobsDb.update(
-          {
-            id: relevantRunningJob.id,
-            jobname,
-            skipped,
-            ended: new Date().getTime(),
-          },
-          (err, result) => {
-            if (err) {
-              reject(err)
-            } else {
-              resolve(result.attrs as RunningJob)
-            }
-          },
-        )
-      })
-    },
-    init: async () => {
-      try {
-        await dynamo.createTables()
-      } catch (e) {
-        // eslint-disable-next-line no-console
-        console.error('failed to create da playa tables', e)
-        throw e
-      }
+      return RunningJobsDb.set(
+        {
+          id: relevantRunningJob.id,
+          jobname,
+          skipped,
+          ended: new Date().getTime(),
+        }
+      )
     },
   }
 }

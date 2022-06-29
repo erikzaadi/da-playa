@@ -1,5 +1,6 @@
 import dynamo from 'dynamodb'
 import Joi from 'joi'
+import { Data } from '../data'
 
 const TTL = 20 * 60 * 1000
 
@@ -32,8 +33,7 @@ export type LockInputArgs = {
 export type ILock = {
   lock: (args: LockInputArgs) => Promise<Lock | LockRejected>
   release: (args: LockInputArgs) => Promise<Lock | LockNotActiveByUser | LockRejected>
-  locks: (env: string) => Promise<Lock[]>
-  init: () => Promise<void>
+  locks: (env: string, user?: string) => Promise<Lock[]>
 }
 
 export type LockOptionArgs = {
@@ -58,22 +58,16 @@ const locksDynamoDbModel: dynamo.DefineConfig = {
   tableName: 'DaPlayaLocks',
 }
 
-export const Locker = async ({ dynamoDBRegion, dynamoDbUri }: LockOptionArgs): Promise<ILock> => {
-  if (dynamoDBRegion || dynamoDbUri) {
-    dynamo.AWS.config.update({
-      ...(dynamoDBRegion
-        ? {
-          region: dynamoDBRegion,
-        }
-        : {}),
-      ...(dynamoDbUri
-        ? {
-          endpoint: dynamoDbUri,
-        }
-        : {}),
-    })
-  }
-  const LockDb = dynamo.define('Lock', locksDynamoDbModel)
+export const Locker = async ({
+  dynamoDBRegion,
+  dynamoDbUri,
+}: LockOptionArgs): Promise<ILock> => {
+  const LocksDB = Data<Lock>({
+    model: locksDynamoDbModel,
+    modelName: 'Lock',
+    dynamoDBRegion,
+    dynamoDbUri,
+  })
 
   const getActiveLocks = (env: string, user?: string): Promise<Lock[]> => {
     const ttl = new Date().getTime() - TTL
@@ -103,18 +97,10 @@ export const Locker = async ({ dynamoDBRegion, dynamoDbUri }: LockOptionArgs): P
         : {}),
     }
 
-    return new Promise<Lock[]>((resolve, reject) => {
-      LockDb.scan()
-        .filterExpression(filterExpression)
-        .expressionAttributeValues(filterAttributeValues)
-        .expressionAttributeNames(filterAttributeNames)
-        .exec((err, result) => {
-          if (err) {
-            reject(err)
-          } else {
-            resolve(result.Items.map((x: any) => x.attrs) as Lock[])
-          }
-        })
+    return LocksDB.get({
+      filterExpression,
+      filterAttributeValues,
+      filterAttributeNames,
     })
   }
 
@@ -134,37 +120,26 @@ export const Locker = async ({ dynamoDBRegion, dynamoDbUri }: LockOptionArgs): P
         currentLock: currentLock[0],
       }
     }
-    return new Promise((resolve, reject) => {
-      LockDb.update(
-        {
-          id: currentLock[0].id,
-          env,
-          active: false,
-          ended: new Date().getTime(),
-        },
-        (err, result) => {
-          if (err) {
-            reject(err)
-          } else {
-            resolve(result.attrs as Lock)
-          }
-        },
-      )
-    })
+    return LocksDB.set(
+      {
+        id: currentLock[0].id,
+        env,
+        active: false,
+        ended: new Date().getTime(),
+      }
+    )
   }
 
-  const createLock = async ({ user, env, meta, uberlock }: LockInputArgs): Promise<Lock> => {
-    const newLock = new LockDb({
-      user: user.toLowerCase(),
-      env: env.toLowerCase(),
-      active: true,
-      started: new Date().getTime(),
-      meta,
-      uberlock,
-    })
-    const created = await newLock.save()
-    return created.attrs as Lock
-  }
+  const createLock = async ({
+    user, env, meta, uberlock,
+  }: LockInputArgs): Promise<Lock> => LocksDB.create({
+    user: user.toLowerCase(),
+    env: env.toLowerCase(),
+    active: true,
+    started: new Date().getTime(),
+    meta,
+    uberlock,
+  })
 
   return {
     lock: async ({ user, env, meta, uberlock = false }) => {
@@ -180,19 +155,10 @@ export const Locker = async ({ dynamoDBRegion, dynamoDbUri }: LockOptionArgs): P
         return createLock({ user, env, meta, uberlock })
       }
       return {
-        currentLock: activeLocks[0] as Lock,
+        currentLock: activeLocks[0],
       }
     },
     release: async ({ env, user, uberlock }) => updatePromiseByUser(env, user, uberlock),
     locks: async (env: string, user?: string) => getActiveLocks(env, user),
-    init: async () => {
-      try {
-        await dynamo.createTables()
-      } catch (e) {
-        // eslint-disable-next-line no-console
-        console.error('failed to create da playa tables', e)
-        throw e
-      }
-    },
   }
 }

@@ -3,6 +3,7 @@ import chalk from 'chalk'
 import { Locker, LockRejected } from '../locker'
 import { RunningJobs } from '../running'
 import { Tag, Hash } from '../version'
+import { Data } from '../data'
 
 const { log } = console
 
@@ -242,11 +243,9 @@ program
     envDynamoDBRegion,
   )
   .action(async options => {
-    const locker = await Locker(options)
-    const runningJobs = await RunningJobs(options)
+    const data = Data(options)
     try {
-      await locker.init()
-      await runningJobs.init()
+      await data.init()
     } catch (err) {
       log(`${prettify.error('Error:')} Unable to create DynamoDb table:\n${prettify.error(err)}`)
       process.exit(1)

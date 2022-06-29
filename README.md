@@ -1,8 +1,8 @@
-# Da-Playa - Dynamo Deploy Locker
+# Da-Playa - Dynamo Deploy Locker and Running Jobs coordinator
 
 ![](./yo.jpg)
 
-### Da-Playa stores the locks in DynamoDB
+### Da-Playa stores the locks and running jobs in DynamoDB
 
 #### DB Schema:
 
@@ -16,15 +16,31 @@ id         |       user        |   env        | createdAt | updatedAt | active |
 <UUID>     |  <COMMITER_EMAIL> | WHATEVZ      | 123123123 | 123123123 | false  | true     | CLI
 ```
 
+`DaPlayaRunningJobs`
+
+```
+id         |       user        |   jobname    | version   | started   | ended     | skipped
+                                                                                                         
+<UUID>     |  <COMMITER_EMAIL> | deploy-prod  | GIT_SHA1  | 123123123 | 123123123 |  true  
+<UUID>     |  <COMMITER_EMAIL> | deploy-stage | GIT_SHA1  | 123123123 |           |  false 
+<UUID>     |  <COMMITER_EMAIL> | WHATEVZ      | GIT_SHA1  | 123123123 | 123123123 |  false 
+```
+
+
+
 ## CLI
 
-Loads AWS credentials from environment variables (either `AWS_PROFILE` or the explicit `AWS_SECRET_KEY` and `AWS_ACCES_KEY_ID`).
+Loads AWS credentials from environment variables (either `AWS_PROFILE` or the explicit `AWS_SECRET_ACCESS_KEY` and `AWS_ACCESS_KEY_ID`).
 
 ```sh
-init                                                        # creates table
-locks --env <ENV>                                           # list locks
-release --env <ENV> --user <USER> [--uberlock]              # release locked env for user at env
-lock --env <ENV> --user <USER> [--meta <META>] [--uberlock] # locks an env for the user
+init                                                                          # creates table
+locks --env <ENV>                                                             # list locks
+release --env <ENV> --user <USER> [--uberlock]                                # release locked env for user at env
+lock --env <ENV> --user <USER> [--meta <META>] [--uberlock]                   # locks an env for the user
+start-job --jobname <JOBNAME> --user <USER> --gitversion <VERSION>            # creates a running job
+end-job --jobname <JOBNAME> --user <USER> --gitversion <VERSION> [--skipped]  # ends a running job, optionally set it as skipped
+active-jobs --jobname <JOBNAME> [--ttl <TIMEFRAME>]                           # list all running jobs within time frame
+skipped-jobs --jobname <JOBNAME> [--ttl <TIMEFRAME>]                          # list all skipped jubs within time frame
 ```
 
 **Note:** 
@@ -49,7 +65,7 @@ DAPLAYA_SLACK_APP_ID
 /daplaya lock <ENV> [META]
 /daplaya uberlock <ENV> [META]
 /daplaya release <ENV>
-/daplaya leases <ENV>
+/daplaya locks <ENV>
 ```
 
 ---
