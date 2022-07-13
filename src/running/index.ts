@@ -110,18 +110,26 @@ export const RunningJobs = async ({
       }),
     getRunningJobs: ({ ttl, jobname }) => getJobs(jobname, ttl),
     getSkippedJobs: ({ ttl, jobname }) => getJobs(jobname, ttl, true),
-    endJob: async ({ jobname, version, user, ttl, skipped = false }) => {
-      const activeRunningJobs = await getJobs(jobname, ttl)
-      const relevantRunningJob = activeRunningJobs.find(
-        x => x.user === user && x.version === version
-      )
-      if (!relevantRunningJob) {
+    endJob: async ({ jobname, version, user, skipped = false }) => {
+      const relevantRunningJobs = await RunningJobsDb.get({
+        filterExpression: '(#jobname = :jobname) AND (#version = :version) AND (#user = :user)',
+        filterAttributeValues: {
+          ':jobname': jobname,
+          ':version': version,
+          ':user': user,
+        },
+        filterAttributeNames: {
+          '#jobname': 'jobname',
+          '#version': 'version',
+          '#user': 'user',
+        },
+      })
+      if (!relevantRunningJobs || !relevantRunningJobs.length) {
         return null
       }
-
       return RunningJobsDb.set(
         {
-          id: relevantRunningJob.id,
+          id: relevantRunningJobs[0].id,
           jobname,
           skipped,
           ended: new Date().getTime(),

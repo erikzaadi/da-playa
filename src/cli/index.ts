@@ -60,10 +60,9 @@ program
     envDynamoDBRegion,
   )
   .option('--skipped', 'Set job as skipped')
-  .option('--ttl <ttl>', 'Timeframe in milliseconds to lookup active jobs')
-  .action(async ({ jobname, user, gitversion, skipped, ttl, ...rest }) => {
+  .action(async ({ jobname, user, gitversion, skipped, ...rest }) => {
     const runningJobs = await RunningJobs(rest)
-    const ended = await runningJobs.endJob({ user, version: gitversion, jobname, skipped, ttl })
+    const ended = await runningJobs.endJob({ user, version: gitversion, jobname, skipped })
 
     if (!ended) {
       log(
