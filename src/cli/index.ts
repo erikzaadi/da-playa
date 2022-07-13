@@ -60,9 +60,10 @@ program
     envDynamoDBRegion,
   )
   .option('--skipped', 'Set job as skipped')
-  .action(async ({ jobname, user, gitversion, skipped, ...rest }) => {
+  .option('--ttl <ttl>', 'Timeframe in milliseconds to lookup active jobs')
+  .action(async ({ jobname, user, gitversion, skipped, ttl, ...rest }) => {
     const runningJobs = await RunningJobs(rest)
-    const ended = await runningJobs.endJob({ user, version: gitversion, jobname, skipped })
+    const ended = await runningJobs.endJob({ user, version: gitversion, jobname, skipped, ttl })
 
     if (!ended) {
       log(
@@ -122,7 +123,7 @@ program
     'DynamoDB Region (Optional, Taken from DAPLAYA_AWS_REGION if set)',
     envDynamoDBRegion,
   )
-  .option('--ttl <ttl>', 'Timeframe in minutes to lookup active jobs')
+  .option('--ttl <ttl>', 'Timeframe in milliseconds to lookup active jobs')
   .option('--json', 'Output raw json')
   .action(getJobs)
 
@@ -135,7 +136,7 @@ program
     'DynamoDB Region (Optional, Taken from DAPLAYA_AWS_REGION if set)',
     envDynamoDBRegion,
   )
-  .option('--ttl <ttl>', 'Timeframe in minutes to lookup active jobs')
+  .option('--ttl <ttl>', 'Timeframe in milliseconds to lookup active jobs')
   .option('--json', 'Output raw json')
   .action(params => getJobs({ ...params, skipped: true }))
 

@@ -2,7 +2,7 @@ import dynamo from 'dynamodb'
 import Joi from 'joi'
 import { Data } from '../data'
 
-const RELEVANT_JOBS_TIMESPAN = 30 * 60 * 1000
+const RELEVANT_JOBS_TIMESPAN = 50 * 60 * 1000
 
 export type RunningJob = {
   id: string
@@ -22,6 +22,7 @@ export type StartJobArgs = {
 
 export type EndJobArgs = StartJobArgs & {
   skipped?: boolean
+  ttl?: number
 }
 
 export type GetRunningJobsArgs = {
@@ -109,8 +110,8 @@ export const RunningJobs = async ({
       }),
     getRunningJobs: ({ ttl, jobname }) => getJobs(jobname, ttl),
     getSkippedJobs: ({ ttl, jobname }) => getJobs(jobname, ttl, true),
-    endJob: async ({ jobname, version, user, skipped = false }) => {
-      const activeRunningJobs = await getJobs(jobname)
+    endJob: async ({ jobname, version, user, ttl, skipped = false }) => {
+      const activeRunningJobs = await getJobs(jobname, ttl)
       const relevantRunningJob = activeRunningJobs.find(
         x => x.user === user && x.version === version
       )
