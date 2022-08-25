@@ -1,8 +1,24 @@
-import dynamo from 'dynamodb'
+import {
+  DynamoDBClient,
+  CreateTableCommand, CreateTableCommandInput, ScalarAttributeType,
+} from '@aws-sdk/client-dynamodb'
+import {
+  ScanCommand, ScanCommandInput,
+  GetCommand, PutCommand,
+  DynamoDBDocumentClient,
+} from '@aws-sdk/lib-dynamodb'
+
+import { v4 as uuidv4 } from 'uuid'
+
+export type DynamoTableModel = {
+  tableName: string
+  primaryKey: string
+  rangeKey: string
+  schema: Record<string, ScalarAttributeType>
+}
 
 export type InitParams = {
-  model: dynamo.DefineConfig
-  modelName: string
+  model: DynamoTableModel
   dynamoDBRegion?: string
   dynamoDbUri?: string
 }
@@ -28,63 +44,91 @@ export type IData<TModel> = {
 
 export const Data = <TModel>({
   model,
-  modelName,
   dynamoDBRegion,
   dynamoDbUri,
 }: InitParams): IData<TModel> => {
-  if (dynamoDBRegion || dynamoDbUri) {
-    dynamo.AWS.config.update({
-      ...(dynamoDBRegion
-        ? {
-          region: dynamoDBRegion,
-        }
-        : {}),
-      ...(dynamoDbUri
-        ? {
-          endpoint: dynamoDbUri,
-        }
-        : {}),
-    })
+  const client = new DynamoDBClient({ region: dynamoDBRegion, endpoint: dynamoDbUri })
+  const docClient = DynamoDBDocumentClient.from(client)
+
+  const setAndGet = async (params: CreateParams): Promise<TModel> => {
+    const item = {
+      ...params,
+      ...{
+        [model.primaryKey]: params[model.primaryKey] || uuidv4(),
+        HashKey: model.primaryKey,
+      },
+    }
+
+    const input = {
+      TableName: model.tableName,
+      Item: item,
+    }
+
+    await docClient.send(new PutCommand(input))
+
+    const getItemInput = {
+      TableName: model.tableName,
+      Key: {
+        [model.primaryKey]: item[model.primaryKey],
+        [model.rangeKey]: item[model.rangeKey],
+      },
+    }
+
+    const getItemResult = await docClient.send(
+      new GetCommand(getItemInput)
+    )
+
+    return getItemResult.Item as unknown as TModel
   }
-  const Model = dynamo.define(modelName, model)
+
   return {
-    get: ({
+    get: async ({
       filterExpression,
       filterAttributeNames,
       filterAttributeValues,
-    }) => new Promise<Array<TModel>>((resolve, reject) => {
-      Model.scan()
-        .filterExpression(filterExpression)
-        .expressionAttributeValues(filterAttributeValues)
-        .expressionAttributeNames(filterAttributeNames)
-        .exec((err, result) => {
-          if (err) {
-            reject(err)
-          } else {
-            resolve(result.Items.map((x: any) => x.attrs) as TModel[])
-          }
-        })
-    }),
-    set: updateParams => new Promise((resolve, reject) => {
-      Model.update(
-        updateParams,
-        (err, result) => {
-          if (err) {
-            reject(err)
-          } else {
-            resolve(result.attrs as TModel)
-          }
-        },
-      )
-    }),
-    create: async createParams => {
-      const newItem = new Model(createParams)
-      const created = await newItem.save()
-      return created.attrs as TModel
+    }) => {
+      const input: ScanCommandInput = {
+        FilterExpression: filterExpression,
+        ExpressionAttributeNames: filterAttributeNames,
+        ExpressionAttributeValues: filterAttributeValues,
+        TableName: model.tableName,
+      }
+
+      const command = new ScanCommand(input)
+
+      const result = await client.send(command)
+
+      return (result.Items || []) as unknown as Array<TModel>
     },
+    set: setAndGet,
+    create: setAndGet,
     init: async () => {
+      const input: CreateTableCommandInput = {
+        AttributeDefinitions: Object.entries(model.schema).map(([attrName, attrType]) => ({
+          AttributeName: attrName,
+          AttributeType: attrType,
+        })),
+        KeySchema: [
+          {
+            AttributeName: model.primaryKey,
+            KeyType: 'HASH',
+          },
+          {
+            AttributeName: model.rangeKey,
+            KeyType: 'RANGE',
+          },
+        ],
+        ProvisionedThroughput: {
+          ReadCapacityUnits: 1,
+          WriteCapacityUnits: 1,
+        },
+        TableName: model.tableName,
+        StreamSpecification: {
+          StreamEnabled: false,
+        },
+      }
       try {
-        await dynamo.createTables()
+        await client.send(new CreateTableCommand(input))
       } catch (e) {
         // eslint-disable-next-line no-console
         console.error('failed to create da playa tables', e)

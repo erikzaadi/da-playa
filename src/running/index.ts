@@ -1,6 +1,4 @@
-import dynamo from 'dynamodb'
-import Joi from 'joi'
-import { Data } from '../data'
+import { Data, DynamoTableModel } from '../data'
 
 const RELEVANT_JOBS_TIMESPAN = 50 * 60 * 1000
 
@@ -42,18 +40,17 @@ export type RunningJobsOptionArgs = {
   dynamoDbUri?: string
 }
 
-const runningJobsDynamoDbModel: dynamo.DefineConfig = {
-  hashKey: 'id',
+const runningJobsDynamoDbModel: DynamoTableModel = {
+  primaryKey: 'id',
   rangeKey: 'jobname',
-  timestamps: false,
   schema: {
-    user: Joi.string().required(),
-    id: dynamo.types.uuid(),
-    version: Joi.string().required(),
-    started: Joi.number().required(),
-    skipped: Joi.boolean().required(),
-    ended: Joi.number(),
-    jobname: Joi.string().required(),
+    user: 'S',
+    id: 'S',
+    version: 'S',
+    started: 'N',
+    skipped: 'B',
+    ended: 'N',
+    jobname: 'S',
   },
   tableName: 'DaPlayaRunningJobs',
 }
@@ -63,7 +60,6 @@ export const RunningJobs = async ({
 }: RunningJobsOptionArgs): Promise<IRunningJobs> => {
   const RunningJobsDb = Data<RunningJob>({
     model: runningJobsDynamoDbModel,
-    modelName: 'RunningJobs',
     dynamoDBRegion,
     dynamoDbUri,
   })
