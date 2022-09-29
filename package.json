@@ -34,7 +34,7 @@
     "@aws-sdk/lib-dynamodb": "^3.154.0",
     "@types/uuid": "^8.3.4",
     "chalk": "^4.1.0",
-    "commander": "^7.1.0",
+    "commander": "^9.4.0",
     "uuid": "^8.3.2"
   },
   "devDependencies": {

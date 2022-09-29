@@ -34,13 +34,13 @@ Loads AWS credentials from environment variables (either `AWS_PROFILE` or the ex
 
 ```sh
 init                                                                          # creates table
-locks --env <ENV>                                                             # list locks
-release --env <ENV> --user <USER> [--uberlock]                                # release locked env for user at env
-lock --env <ENV> --user <USER> [--meta <META>] [--uberlock]                   # locks an env for the user
-start-job --jobname <JOBNAME> --user <USER> --gitversion <VERSION>            # creates a running job
-end-job --jobname <JOBNAME> --user <USER> --gitversion <VERSION> [--skipped]  # ends a running job, optionally set it as skipped
-active-jobs --jobname <JOBNAME> [--ttl <TIMEFRAME>]                           # list all running jobs within time frame
-skipped-jobs --jobname <JOBNAME> [--ttl <TIMEFRAME>]                          # list all skipped jubs within time frame
+locks list --env <ENV>                                                        # list locks
+locks release --env <ENV> --user <USER> [--uberlock]                          # release locked env for user at env
+locks lock --env <ENV> --user <USER> [--meta <META>] [--uberlock]             # locks an env for the user
+jobs start --jobname <JOBNAME> --user <USER> --gitversion <VERSION>           # creates a running job
+jobs end version <VERSION> [--skipped]                                        # ends a running job, optionally set it as skipped
+jobs active --jobname <JOBNAME> [--ttl <TIMEFRAME>]                           # list all running jobs within time frame
+jobs skipped --jobname <JOBNAME> [--ttl <TIMEFRAME>]                          # list all skipped jubs within time frame
 ```
 
 **Note:** 
@@ -53,19 +53,6 @@ E.g. : `Still locked at env <ENV> by <USER>`
 
 ```sh
 DAPLAYA_AWS_REGION # Optionally explicitly set region to save DynamoDB table
-DAPLAYA_SLACK_APP_ID
-```
-
-
-## Slack app endpoint
-
-**NOTE**: Still TBD
-
-```
-/daplaya lock <ENV> [META]
-/daplaya uberlock <ENV> [META]
-/daplaya release <ENV>
-/daplaya locks <ENV>
 ```
 
 ---
