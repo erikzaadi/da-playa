@@ -37,7 +37,7 @@ export const jobCommands = (
       )
     })
   }
-  const program = new Command('job')
+  const program = new Command('jobs')
     .description('Manage running jobs')
 
   program
