@@ -105,19 +105,13 @@ export const RunningJobs = async ({
   const getJob = async ({
     jobname,
     version,
-    ttl = RELEVANT_JOBS_TIMESPAN,
   }: GetRunningJobArgs): Promise<RunningJob | undefined> => {
-    const timeframe = new Date().getTime() - ttl
-    const filterJobNameAndVersionExpression = '#jobname = :jobname AND #version = :version'
-    const filterActive = '#started > :ttl'
-    const filterExpression = `(${filterJobNameAndVersionExpression}) AND (${filterActive})`
+    const filterExpression = '#jobname = :jobname AND #version = :version'
     const filterAttributeValues = {
       ':jobname': jobname,
-      ':ttl': timeframe,
       ':version': version,
     }
     const filterAttributeNames = {
-      '#started': 'started',
       '#jobname': 'jobname',
       '#version': 'version',
     }

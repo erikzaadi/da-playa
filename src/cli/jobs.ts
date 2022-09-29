@@ -45,16 +45,15 @@ export const jobCommands = (
     .description('get a job')
     .requiredOption('--jobname <jobname>', 'Name')
     .requiredOption('--gitversion <version>', 'Version')
-    .option('--ttl <ttl>', 'Timeframe in milliseconds to lookup active jobs')
     .option('--json', 'Output raw json')
     .option(
       '--dynamoDBRegion <dynamoDBRegion>',
       'DynamoDB Region (Optional, Taken from DAPLAYA_AWS_REGION if set)',
       envDynamoDBRegion,
     )
-    .action(async ({ jobname, ttl, json, gitversion, ...rest }) => {
+    .action(async ({ jobname, json, gitversion, ...rest }) => {
       const runningJobs = await RunningJobs(rest)
-      const job = await runningJobs.getJob({ version: gitversion, jobname, ttl })
+      const job = await runningJobs.getJob({ version: gitversion, jobname })
 
       if (!job) {
         if (json) {
