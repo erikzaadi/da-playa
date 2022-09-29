@@ -28,11 +28,18 @@ export type GetRunningJobsArgs = {
   ttl?: number
 }
 
+export type GetRunningJobArgs = {
+  jobname: string
+  version: string
+  ttl?: number
+}
+
 export type IRunningJobs = {
   startJob: (args: StartJobArgs) => Promise<RunningJob>
   endJob: (args: EndJobArgs) => Promise<RunningJob | null>
   getRunningJobs: (args: GetRunningJobsArgs) => Promise<Array<RunningJob>>
   getSkippedJobs: (args: GetRunningJobsArgs) => Promise<Array<RunningJob>>
+  getJob: (args: GetRunningJobArgs) => Promise<RunningJob | undefined>
 }
 
 export type RunningJobsOptionArgs = {
@@ -95,7 +102,37 @@ export const RunningJobs = async ({
     })
   }
 
+  const getJob = async ({
+    jobname,
+    version,
+    ttl = RELEVANT_JOBS_TIMESPAN,
+  }: GetRunningJobArgs): Promise<RunningJob | undefined> => {
+    const timeframe = new Date().getTime() - ttl
+    const filterJobNameAndVersionExpression = '#jobname = :jobname AND #version = :version'
+    const filterActive = '#started > :ttl'
+    const filterExpression = `(${filterJobNameAndVersionExpression}) AND (${filterActive})`
+    const filterAttributeValues = {
+      ':jobname': jobname,
+      ':ttl': timeframe,
+      ':version': version,
+    }
+    const filterAttributeNames = {
+      '#started': 'started',
+      '#jobname': 'jobname',
+      '#version': 'version',
+    }
+
+    const result = await RunningJobsDb.get({
+      filterExpression,
+      filterAttributeValues,
+      filterAttributeNames,
+    })
+
+    return result?.[0]
+  }
+
   return {
+    getJob,
     startJob: async ({ user, version, jobname }) =>
       RunningJobsDb.create({
         user: user.toLowerCase(),
@@ -125,8 +162,7 @@ export const RunningJobs = async ({
       }
       return RunningJobsDb.set(
         {
-          id: relevantRunningJobs[0].id,
-          jobname,
+          ...relevantRunningJobs[0],
           skipped,
           ended: new Date().getTime(),
         }

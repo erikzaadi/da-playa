@@ -27,6 +27,42 @@ const {
 } = process.env
 
 program
+  .command('get-job')
+  .description('get a job')
+  .requiredOption('--jobname <jobname>', 'Name')
+  .requiredOption('--gitversion <version>', 'Version')
+  .option('--ttl <ttl>', 'Timeframe in milliseconds to lookup active jobs')
+  .option('--json', 'Output raw json')
+  .option(
+    '--dynamoDBRegion <dynamoDBRegion>',
+    'DynamoDB Region (Optional, Taken from DAPLAYA_AWS_REGION if set)',
+    envDynamoDBRegion,
+  )
+  .action(async ({ jobname, ttl, json, gitversion, ...rest }) => {
+    const runningJobs = await RunningJobs(rest)
+    const job = await runningJobs.getJob({ version: gitversion, jobname, ttl })
+
+    if (!job) {
+      if (json) {
+        return
+      }
+      log(`No job found for version ${gitversion} on job ${jobname}`)
+      return
+    }
+
+    if (json) {
+      log(JSON.stringify(job))
+      return
+    }
+
+    log(
+      `Found job ${prettify.env(
+        job.jobname,
+      )} for ${prettify.user(job.user)} with version ${prettify.misc(job.version)}${prettify.error(job.skipped ? ' (skipped)' : '')}${prettify.user(job.ended !== undefined ? ' (ended)' : '')}`,
+    )
+  })
+
+program
   .command('start-job')
   .description('start a job')
   .requiredOption('--jobname <jobname>', 'Name')

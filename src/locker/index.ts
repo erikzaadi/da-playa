@@ -118,8 +118,7 @@ export const Locker = async ({
     }
     return LocksDB.set(
       {
-        id: currentLock[0].id,
-        env,
+        ...currentLock[0],
         active: false,
         ended: new Date().getTime(),
       }
