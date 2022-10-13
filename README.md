@@ -38,6 +38,7 @@ locks list --env <ENV>                                                        # 
 locks release --env <ENV> --user <USER> [--uberlock]                          # release locked env for user at env
 locks lock --env <ENV> --user <USER> [--meta <META>] [--uberlock]             # locks an env for the user
 jobs start --jobname <JOBNAME> --user <USER> --gitversion <VERSION>           # creates a running job
+jobs get --jobname <JOBNAME> --gitversion <VERSION>                           # get the details of a specific job
 jobs end version <VERSION> [--skipped]                                        # ends a running job, optionally set it as skipped
 jobs active --jobname <JOBNAME> [--ttl <TIMEFRAME>]                           # list all running jobs within time frame
 jobs skipped --jobname <JOBNAME> [--ttl <TIMEFRAME>]                          # list all skipped jubs within time frame

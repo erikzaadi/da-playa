@@ -2,7 +2,7 @@
   "name": "da-playa",
   "version": "0.0.0",
   "description": "Deploy locks management (CLI and Slackbot)",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
     "build": "tsc -b",
     "clean": "rm -rf ./dist",
