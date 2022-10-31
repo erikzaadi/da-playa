@@ -138,17 +138,29 @@ export const Locker = async ({
 
   return {
     lock: async ({ user, env, meta, uberlock = false }) => {
+      const activeLocks = await getActiveLocks(env)
+      const existingUberLock = activeLocks.find(x => x.uberlock)
+
+      if (existingUberLock) {
+        return existingUberLock.user !== user ? {
+          // LockRejected due to other user uberlocking
+          currentLock: existingUberLock,
+        } : existingUberLock
+      }
+
       if (uberlock) {
         return createLock({ user, env, meta, uberlock })
       }
-      const activeLocks = await getActiveLocks(env)
+
       const currentUserLock = activeLocks.find(x => x.user === user)
       if (currentUserLock) {
         return currentUserLock
       }
+
       if (!activeLocks.length) {
         return createLock({ user, env, meta, uberlock })
       }
+
       return {
         currentLock: activeLocks[0],
       }

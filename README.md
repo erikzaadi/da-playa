@@ -104,3 +104,10 @@ DAPLAYA_AWS_REGION # Optionally explicitly set region to save DynamoDB table
 ===============+=+++++++++++++++++++++++++++++=+++++++++++++++%%%%@%%%%@@@@@@@@@@@@%@%+*%@@@@@@@@@@@@@@@@@@@@@%
 ```
 
+
+### Testing locally
+
+```sh
+npm run -s cli -- <PARAMS> # -s to supress npm verbose output
+```
+

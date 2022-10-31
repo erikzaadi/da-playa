@@ -48,7 +48,10 @@ export const Data = <TModel>({
   dynamoDbUri,
 }: InitParams): IData<TModel> => {
   const client = new DynamoDBClient({ region: dynamoDBRegion, endpoint: dynamoDbUri })
-  const docClient = DynamoDBDocumentClient.from(client)
+  const docClient = DynamoDBDocumentClient.from(
+    client,
+    { marshallOptions: { removeUndefinedValues: true } },
+  )
 
   const setAndGet = async (params: CreateParams): Promise<TModel> => {
     const item = {
