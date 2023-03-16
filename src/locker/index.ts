@@ -1,6 +1,10 @@
-import { Data, DynamoTableModel } from '../data'
+import dynamo from 'dynamodb'
+import Joi from 'joi'
+import { Data, ModelDetails } from '../data'
 
 const TTL = 20 * 60 * 1000
+
+export const ModelName = 'lock'
 
 export type Lock = {
   id: string
@@ -39,20 +43,26 @@ export type LockOptionArgs = {
   dynamoDbUri?: string
 }
 
-const locksDynamoDbModel: DynamoTableModel = {
-  primaryKey: 'id',
+const locksDynamoDbModel: dynamo.DefineConfig<Lock> = {
+  hashKey: 'id',
   rangeKey: 'env',
+  timestamps: false,
   schema: {
-    user: 'S',
-    id: 'S',
-    env: 'S',
-    active: 'B',
-    started: 'N',
-    ended: 'N',
-    uberlock: 'B',
-    meta: 'S',
+    user: Joi.string().required(),
+    id: dynamo.types.uuid(),
+    env: Joi.string().required(),
+    active: Joi.boolean(),
+    started: Joi.number().required(),
+    ended: Joi.number(),
+    uberlock: Joi.boolean(),
+    meta: Joi.string(),
   },
   tableName: 'DaPlayaLocks',
+}
+
+export const LockModelDetails: ModelDetails<Lock> = {
+  Model: locksDynamoDbModel,
+  ModelName,
 }
 
 export const Locker = async ({
@@ -61,6 +71,7 @@ export const Locker = async ({
 }: LockOptionArgs): Promise<ILock> => {
   const LocksDB = Data<Lock>({
     model: locksDynamoDbModel,
+    modelName: ModelName,
     dynamoDBRegion,
     dynamoDbUri,
   })

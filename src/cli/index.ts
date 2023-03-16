@@ -1,8 +1,8 @@
 import { Command } from 'commander'
 import { Tag, Hash } from '../version'
 import { Data } from '../data'
-import { jobCommands } from './jobs'
-import { lockCommands } from './locks'
+import { jobCommands, RunningJobsModelDetails } from './jobs'
+import { lockCommands, LockModelDetails } from './locks'
 import { log, prettify } from './common'
 
 const program = new Command('da-playa')
@@ -26,9 +26,19 @@ program
     envDynamoDBRegion,
   )
   .action(async options => {
-    const data = Data(options)
+    const lock = Data({
+      modelName: LockModelDetails.ModelName,
+      model: LockModelDetails.Model,
+      ...options,
+    })
+    const runningJobs = Data({
+      modelName: RunningJobsModelDetails.ModelName,
+      model: RunningJobsModelDetails.Model,
+      ...options,
+    })
     try {
-      await data.init()
+      await lock.init()
+      await runningJobs.init()
     } catch (err) {
       log(`${prettify.error('Error:')} Unable to create DynamoDb table:\n${prettify.error(err)}`)
       process.exit(1)

@@ -2,6 +2,8 @@ import { Command } from 'commander'
 import { Locker, LockRejected } from '../locker'
 import { log, prettify } from './common'
 
+export { LockModelDetails } from '../locker'
+
 const UBERLOCK_UNIVERSAL_SIGN = '(ノ≥∇≤)ノ'
 
 const RETRY_SECONDS = 5

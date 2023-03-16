@@ -2,6 +2,8 @@ import { Command } from 'commander'
 import { RunningJobs } from '../running'
 import { log, prettify } from './common'
 
+export { RunningJobsModelDetails } from '../running'
+
 export const jobCommands = (
   envDynamoDBRegion?: string
 ): Command => {
