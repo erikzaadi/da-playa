@@ -144,6 +144,7 @@ export const jobCommands = (
     .option('--json', 'Output raw json')
     .action(getJobs)
 
+  program
     .command('skipped')
     .description('Get\'s all skipped jobs')
     .requiredOption('--jobname <jobname>', 'Job Name')
